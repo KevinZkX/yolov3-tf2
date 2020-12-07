@@ -46,8 +46,8 @@ flags.DEFINE_integer('weights_num_classes', None, 'specify num class for `weight
 
 def main(_argv):
     physical_devices = tf.config.experimental.list_physical_devices('GPU')
-    if len(physical_devices) > 0:
-        tf.config.experimental.set_memory_growth(physical_devices[0], True)
+    for physical_device in physical_devices:
+        tf.config.experimental.set_memory_growth(physical_device, True)
 
     if FLAGS.tiny:
         model = YoloV3Tiny(FLAGS.size, training=True,
@@ -59,10 +59,11 @@ def main(_argv):
         anchors = yolo_anchors
         anchor_masks = yolo_anchor_masks
 
-    train_dataset = dataset.load_fake_dataset()
     if FLAGS.dataset:
         train_dataset = dataset.load_tfrecord_dataset(
             FLAGS.dataset, FLAGS.classes, FLAGS.size)
+    else:
+        train_dataset = dataset.load_fake_dataset()
     train_dataset = train_dataset.shuffle(buffer_size=512)
     train_dataset = train_dataset.batch(FLAGS.batch_size)
     train_dataset = train_dataset.map(lambda x, y: (
@@ -71,10 +72,11 @@ def main(_argv):
     train_dataset = train_dataset.prefetch(
         buffer_size=tf.data.experimental.AUTOTUNE)
 
-    val_dataset = dataset.load_fake_dataset()
     if FLAGS.val_dataset:
         val_dataset = dataset.load_tfrecord_dataset(
             FLAGS.val_dataset, FLAGS.classes, FLAGS.size)
+    else:
+        val_dataset = dataset.load_fake_dataset()
     val_dataset = val_dataset.batch(FLAGS.batch_size)
     val_dataset = val_dataset.map(lambda x, y: (
         dataset.transform_images(x, FLAGS.size),
